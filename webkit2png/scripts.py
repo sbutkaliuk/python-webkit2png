@@ -31,7 +31,7 @@ import signal
 import os
 import urlparse
 import logging
-from optparse import OptionParser
+from argparse import ArgumentParser
 
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
@@ -41,6 +41,7 @@ from PyQt4.QtNetwork import *
 VERSION="20091224"
 LOG_FILENAME = 'webkit2png.log'
 logger = logging.getLogger('webkit2png')
+
 
 def init_qtgui(display=None, style=None, qtargs=None):
     """Initiates the QApplication environment using the given args."""
@@ -81,58 +82,57 @@ def main():
     # $0 [--xvfb|--display=DISPLAY] [--debug] [--output=FILENAME] <URL>
 
     description = "Creates a screenshot of a website using QtWebkit." \
-                + "This program comes with ABSOLUTELY NO WARRANTY. " \
-                + "This is free software, and you are welcome to redistribute " \
-                + "it under the terms of the GNU General Public License v2."
+                  + "This program comes with ABSOLUTELY NO WARRANTY. " \
+                  + "This is free software, and you are welcome to redistribute " \
+                  + "it under the terms of the GNU General Public License v2."
 
-    parser = OptionParser(usage="usage: %prog [options] <URL>",
-                          version="%prog " + VERSION + ", Copyright (c) Roland Tapken",
-                          description=description, add_help_option=True)
-    parser.add_option("-x", "--xvfb", nargs=2, type="int", dest="xvfb",
-                      help="Start an 'xvfb' instance with the given desktop size.", metavar="WIDTH HEIGHT")
-    parser.add_option("-g", "--geometry", dest="geometry", nargs=2, default=(0, 0), type="int",
-                      help="Geometry of the virtual browser window (0 means 'autodetect') [default: %default].", metavar="WIDTH HEIGHT")
-    parser.add_option("-o", "--output", dest="output",
-                      help="Write output to FILE instead of STDOUT.", metavar="FILE")
-    parser.add_option("-f", "--format", dest="format", default="png",
-                      help="Output image format [default: %default]", metavar="FORMAT")
-    parser.add_option("--scale", dest="scale", nargs=2, type="int",
-                      help="Scale the image to this size", metavar="WIDTH HEIGHT")
-    parser.add_option("--aspect-ratio", dest="ratio", type="choice", choices=["ignore", "keep", "expand", "crop"],
-                      help="One of 'ignore', 'keep', 'crop' or 'expand' [default: %default]")
-    parser.add_option("-F", "--feature", dest="features", action="append", type="choice",
-                      choices=["javascript", "plugins"],
-                      help="Enable additional Webkit features ('javascript', 'plugins')", metavar="FEATURE")
-    parser.add_option("-c", "--cookie", dest="cookies", action="append",
-                      help="Add this cookie. Use multiple times for more cookies. Specification is value of a Set-Cookie HTTP response header.", metavar="COOKIE")
-    parser.add_option("-w", "--wait", dest="wait", default=0, type="int",
-                      help="Time to wait after loading before the screenshot is taken [default: %default]", metavar="SECONDS")
-    parser.add_option("-t", "--timeout", dest="timeout", default=0, type="int",
-                      help="Time before the request will be canceled [default: %default]", metavar="SECONDS")
-    parser.add_option("-W", "--window", dest="window", action="store_true",
-                      help="Grab whole window instead of frame (may be required for plugins)", default=False)
-    parser.add_option("-T", "--transparent", dest="transparent", action="store_true",
-                      help="Render output on a transparent background (Be sure to have a transparent background defined in the html)", default=False)
-    parser.add_option("", "--style", dest="style",
-                      help="Change the Qt look and feel to STYLE (e.G. 'windows').", metavar="STYLE")
-    parser.add_option("", "--encoded-url", dest="encoded_url", action="store_true",
-        help="Treat URL as url-encoded", metavar="ENCODED_URL", default=False)
-    parser.add_option("-d", "--display", dest="display",
-                      help="Connect to X server at DISPLAY.", metavar="DISPLAY")
-    parser.add_option("--debug", action="store_true", dest="debug",
-                      help="Show debugging information.", default=False)
-    parser.add_option("--log", action="store", dest="logfile", default=LOG_FILENAME,
-                      help="Select the log output file",)
+    parser = ArgumentParser(version="%(prog) " + VERSION + ", Copyright (c) Roland Tapken",
+                            description=description)
+    parser.add_argument("-x", "--xvfb", nargs=2, type=int, dest="xvfb",
+                        help="Start an 'xvfb' instance with the given desktop size.", metavar="WIDTH HEIGHT")
+    parser.add_argument("-g", "--geometry", dest="geometry", nargs=2, default=(0, 0), type=int,
+                        help="Geometry of the virtual browser window (0 means 'autodetect') [default: %(default)s].",
+                        metavar="WIDTH HEIGHT")
+    parser.add_argument("-f", "--format", dest="format", default="png",
+                        help="Output image format [default: %(default)s]", metavar="FORMAT")
+    parser.add_argument("--scale", dest="scale", nargs=2, type=int,
+                        help="Scale the image to this size", metavar="WIDTH HEIGHT")
+    parser.add_argument("--aspect-ratio", dest="ratio", choices=["ignore", "keep", "expand", "crop"],
+                        help="One of 'ignore', 'keep', 'crop' or 'expand' [default: %(default)s]")
+    parser.add_argument("-F", "--feature", dest="features", action="append", choices=["javascript", "plugins"],
+                        help="Enable additional Webkit features ('javascript', 'plugins')", metavar="FEATURE")
+    parser.add_argument("-c", "--cookie", dest="cookies", action="append",
+                        help="Add this cookie. Use multiple times for more cookies.\
+                         Specification is value of a Set-Cookie HTTP response header.", metavar="COOKIE")
+    parser.add_argument("-w", "--wait", dest="wait", default=0, type=int,
+                        help="Time to wait after loading before the screenshot is taken [default: %(default)s]", metavar="SECONDS")
+    parser.add_argument("-t", "--timeout", dest="timeout", default=0, type=int,
+                        help="Time before the request will be canceled [default: %(default)s]", metavar="SECONDS")
+    parser.add_argument("-W", "--window", dest="window", action="store_true",
+                        help="Grab whole window instead of frame (may be required for plugins)", default=False)
+    parser.add_argument("-T", "--transparent", dest="transparent", action="store_true",
+                        help="Render output on a transparent background\
+                         (Be sure to have a transparent background defined in the html)", default=False)
+    parser.add_argument("--style", dest="style",
+                        help="Change the Qt look and feel to STYLE (e.G. 'windows').", metavar="STYLE")
+    parser.add_argument("--encoded-url", dest="encoded_url", action="store_true",
+                        help="Treat URL as url-encoded", default=False)
+    parser.add_argument("-d", "--display", dest="display",
+                        help="Connect to X server at DISPLAY.", metavar="DISPLAY")
+    parser.add_argument("--debug", action="store_true", dest="debug",
+                        help="Show debugging information.", default=False)
+    parser.add_argument("--log", action="store", dest="logfile", default=LOG_FILENAME,
+                        help="Select the log output file",)
+
+    parser.add_argument(dest="url")
 
     # Parse command line arguments and validate them (as far as we can)
-    (options,args) = parser.parse_args()
-    if len(args) != 1:
-        parser.error("incorrect number of arguments")
+    options = parser.parse_args()
+
     if options.display and options.xvfb:
         parser.error("options -x and -d are mutually exclusive")
-    options.url = args[0]
 
-    logging.basicConfig(filename=options.logfile,level=logging.WARN,)
+    logging.basicConfig(filename=options.logfile, level=logging.WARN,)
 
     # Enable output of debugging information
     if options.debug:
