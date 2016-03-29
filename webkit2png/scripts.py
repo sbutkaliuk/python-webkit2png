@@ -89,14 +89,14 @@ def main():
     parser = ArgumentParser(version="%(prog) " + VERSION + ", Copyright (c) Roland Tapken",
                             description=description)
     parser.add_argument("-x", "--xvfb", nargs=2, type=int, dest="xvfb",
-                        help="Start an 'xvfb' instance with the given desktop size.", metavar="WIDTH HEIGHT")
+                        help="Start an 'xvfb' instance with the given desktop size.", metavar=("WIDTH", "HEIGHT"))
     parser.add_argument("-g", "--geometry", dest="geometry", nargs=2, default=(0, 0), type=int,
                         help="Geometry of the virtual browser window (0 means 'autodetect') [default: %(default)s].",
-                        metavar="WIDTH HEIGHT")
+                       metavar=("WIDTH", "HEIGHT"))
     parser.add_argument("-f", "--format", dest="format", default="png",
                         help="Output image format [default: %(default)s]", metavar="FORMAT")
     parser.add_argument("--scale", dest="scale", nargs=2, type=int,
-                        help="Scale the image to this size", metavar="WIDTH HEIGHT")
+                        help="Scale the image to this size", metavar=("WIDTH", "HEIGHT"))
     parser.add_argument("--aspect-ratio", dest="ratio", choices=["ignore", "keep", "expand", "crop"],
                         help="One of 'ignore', 'keep', 'crop' or 'expand' [default: %(default)s]")
     parser.add_argument("-F", "--feature", dest="features", action="append", choices=["javascript", "plugins"],
@@ -124,7 +124,12 @@ def main():
     parser.add_argument("--log", action="store", dest="logfile", default=LOG_FILENAME,
                         help="Select the log output file",)
 
-    parser.add_argument(dest="url")
+    group = parser.add_argument_group("batch-mode")
+    group.add_argument("--input-dir", dest="input_dir", metavar="DIR")
+    group.add_argument("--output-dir", dest="output_dir", metavar="DIR")
+    group.add_argument("--suppress-ext", dest="suppress_ext", action="store_false")
+
+    parser.add_argument(dest="urls", nargs="+", help="file paths list. WARNING: currently not working with web urls")
 
     # Parse command line arguments and validate them (as far as we can)
     options = parser.parse_args()
@@ -158,13 +163,7 @@ def main():
             print >> sys.stderr, "Error - Unable to find '%s' for -x/--xvfb option" % newArgs[0]
             sys.exit(1)
 
-    # Prepare output ("1" means STDOUT)
-    if options.output is None:
-        options.output = sys.stdout
-    else:
-        options.output = open(options.output, "w")
-
-    logger.debug("Version %s, Python %s, Qt %s", VERSION, sys.version, qVersion());
+    logger.debug("Version %s, Python %s, Qt %s", VERSION, sys.version, qVersion())
 
     # Technically, this is a QtGui application, because QWebPage requires it
     # to be. But because we will have no user interaction, and rendering can
@@ -200,8 +199,19 @@ def main():
                 if "plugins" in options.features:
                     renderer.qWebSettings[QWebSettings.PluginsEnabled] = True
 
-            renderer.render_to_file(res=options.url, file_object=options.output)
-            options.output.close()
+            for f in options.urls:
+                read = os.path.join(options.input_dir, f) if options.input_dir else f
+
+                save = os.path.join(options.output_dir, f) if options.output_dir else f
+                save = os.path.splitext(save)[0] if options.suppress_ext else save
+                save = save + '.' + options.format
+
+                if not os.path.isdir(os.path.dirname(save)):
+                    os.makedirs(os.path.dirname(save))
+
+                with open(save, "w") as ff:
+                    renderer.render_to_file(res=read, file_object=ff)
+
             QApplication.exit(0)
         except RuntimeError, e:
             logger.error("main: %s" % e)
@@ -210,7 +220,7 @@ def main():
 
     # Initialize Qt-Application, but make this script
     # abortable via CTRL-C
-    app = init_qtgui(display = options.display, style=options.style)
+    app = init_qtgui(display=options.display, style=options.style)
     signal.signal(signal.SIGINT, signal.SIG_DFL)
 
     QTimer.singleShot(0, __main_qt)
