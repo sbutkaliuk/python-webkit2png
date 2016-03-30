@@ -202,6 +202,9 @@ class _WebkitRendererHelper(QObject):
         # Show this widget
         self._window.show()
 
+        # Check Qt5 for QPixmap::grabWidget() or QWidget::grab() choosing
+        self._isQt5 = QT_VERSION >= 0x50000
+
     def __del__(self):
         """
         Clean up Qt4 objects.
@@ -253,7 +256,7 @@ class _WebkitRendererHelper(QObject):
                 self._view.activateWindow()
                 image = QPixmap.grabWindow(self._window.winId())
             else:
-                image = QPixmap.grabWidget(self._window)
+                image = self._window.grab() if self._isQt5 else QPixmap.grabWidget(self._window)
 
         return self._post_process_image(image)
 
