@@ -127,7 +127,7 @@ def main():
     group = parser.add_argument_group("batch-mode")
     group.add_argument("--input-dir", dest="input_dir", metavar="DIR")
     group.add_argument("--output-dir", dest="output_dir", metavar="DIR")
-    group.add_argument("--suppress-ext", dest="suppress_ext", action="store_false")
+    group.add_argument("--keep-ext", dest="keep_ext", action="store_true")
 
     parser.add_argument(dest="urls", nargs="+", help="file paths list. WARNING: currently not working with web urls")
 
@@ -200,17 +200,17 @@ def main():
                     renderer.qWebSettings[QWebSettings.PluginsEnabled] = True
 
             for f in options.urls:
-                read = os.path.join(options.input_dir, f) if options.input_dir else f
+                read = 'file://' + os.path.join(options.input_dir, f) if options.input_dir else f
 
                 save = os.path.join(options.output_dir, f) if options.output_dir else f
-                save = os.path.splitext(save)[0] if options.suppress_ext else save
+                save = os.path.splitext(save)[0] if not options.keep_ext else save
                 save = save + '.' + options.format
 
                 if not os.path.isdir(os.path.dirname(save)):
                     os.makedirs(os.path.dirname(save))
 
-                with open(save, "w") as ff:
-                    renderer.render_to_file(res=read, file_object=ff)
+                with open(save, "w") as save_file:
+                    renderer.render_to_file(res=read, file_object=save_file)
 
             QApplication.exit(0)
         except RuntimeError, e:
